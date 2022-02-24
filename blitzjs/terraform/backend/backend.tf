@@ -16,7 +16,7 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "tf-state-bucket" {
-  bucket = "wz-tf-state-infra-lab"
+  bucket = "wz-tf-state-infra-lab-${terraform.workspace}"
 
   versioning {
     enabled = true
@@ -36,7 +36,7 @@ resource "aws_s3_bucket" "tf-state-bucket" {
 }
 
 resource "aws_dynamodb_table" "tf-lock-dynamodb" {
-  name           = "tf-state-lock"
+  name           = "tf-state-lock-${terraform.workspace}"
   hash_key       = "LockID"
   read_capacity  = 5
   write_capacity = 5
