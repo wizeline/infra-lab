@@ -1,0 +1,20 @@
+name: Deploy development stage
+
+on:
+  push:
+    branches: [main]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  run-dev-deploy:
+    name: Run development deploy
+    uses: ./.github/workflows/run-deploy.yml
+    with:
+      branch: ${{ github.ref_name }}
+      stage: development
+      node-version: '16.13.1'
+    secrets:
+      ENV_FILE: ${{ secrets.DEV_ENV }}

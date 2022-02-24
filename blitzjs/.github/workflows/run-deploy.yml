@@ -1,0 +1,165 @@
+name: Run deploy
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        required: true
+        type: string
+      stage:
+        required: true
+        type: string
+      node-version:
+        required: true
+        type: string
+    secrets:
+      ENV_FILE:
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  deploy-branch:
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: production
+      ADD_SEED_DATA: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.PIPELINE_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PIPELINE_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.PIPELINE_AWS_REGION }}
+
+      - name: Use Node.js ${{ inputs.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Get repo name
+        id: repo-name
+        run: echo ::set-output name=REPO_NAME::${GITHUB_REPOSITORY#*/}
+
+      - name: Remove existing .env file
+        run: rm -f .env
+
+      - name: Create .env file for ${{ inputs.stage }} stage
+        run: |
+          cat << EOF > .env
+          ${{ secrets.ENV_FILE }}
+          EOF
+
+      - name: Install Blitz globally
+        run: yarn global add blitz
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Install Litestream
+        if: ${{ inputs.stage == 'production' }}
+        run: |
+          wget https://github.com/benbjohnson/litestream/releases/download/v0.3.7/litestream-v0.3.7-linux-amd64.deb
+          sudo dpkg -i litestream-v0.3.7-linux-amd64.deb
+          litestream version
+
+      - name: Restore database
+        if: ${{ inputs.stage == 'production' }}
+        run: litestream restore -o ./db/db.sqlite "s3://${{ secrets.LITESTREAM_S3_BUCKET }}/${{ secrets.LITESTREAM_S3_PATH }}"
+        continue-on-error: true
+
+      - name: Init SQLite database
+        run: |
+          if [ -f "./db/db.sqlite" ]; then
+            blitz prisma migrate deploy
+          else
+            blitz prisma migrate reset --force
+          fi
+
+      - name: Add seed data
+        run: |
+          if ${{ env.ADD_SEED_DATA }}; then
+            blitz db seed
+          fi
+
+      - name: Terraform Change Workspace Lightsail
+        uses: dflook/terraform-new-workspace@v1
+        with:
+          path: terraform/lightsail/
+          workspace: ${{ inputs.stage }}
+
+      - name: Terraform Apply Lightsail
+        uses: dflook/terraform-apply@v1
+        with:
+          path: terraform/lightsail/
+          workspace: ${{ inputs.stage }}
+          auto_approve: true
+
+      - name: Get Lightsail instance Username
+        id: get-lightsail-username
+        run: echo ::set-output name=USERNAME::$(aws lightsail get-instance-access-details --instance-name ${{ steps.repo-name.output.REPO_NAME }}-${{ inputs.stage }} | jq -r '.accessDetails.username')
+
+      - name: Get Lightsail instance IP Address
+        id: get-lightsail-ip-address
+        run: echo ::set-output name=IP_ADDRESS::$(aws lightsail get-instance-access-details --instance-name ${{ steps.repo-name.output.REPO_NAME }}-${{ inputs.stage }} | jq -r '.accessDetails.ipAddress')
+
+      - name: Prepare deployment server for build
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ steps.get-lightsail-ip-address.outputs.IP_ADDRESS }}
+          username: ${{ steps.get-lightsail-username.outputs.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            rm -rf ~/project/tmp
+            mkdir -p ~/project/app
+            mkdir -p ~/project/db
+            mkdir -p ~/project/tmp
+
+      - name: Delete node modules
+        run: rm -rf node_modules
+
+      - name: Copy Files To Lightsail Instance
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ steps.get-lightsail-username.outputs.USERNAME }}
+          server: ${{ steps.get-lightsail-ip-address.outputs.IP_ADDRESS }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          local_path: './*'
+          remote_path: '/home/admin/project/tmp/'
+          args: '-o ConnectTimeout=60'
+
+      - name: Configure deployment server
+        uses: appleboy/ssh-action@master
+        with:
+          timeout: 60s
+          command_timeout: 30m
+          host: ${{ steps.get-lightsail-ip-address.outputs.IP_ADDRESS }}
+          username: ${{ steps.get-lightsail-username.outputs.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            chmod +x ~/project/tmp/scripts/setup.sh
+            ~/project/tmp/scripts/setup.sh ${{ inputs.stage }} ${{ inputs.node-version }} ${{ secrets.LITESTREAM_AWS_ACCESS_KEY_ID }} ${{ secrets.LITESTREAM_AWS_SECRET_ACCESS_KEY }}
+            rm -rf ~/project/tmp
+
+      - name: Terraform Change Workspace Distribution
+        uses: dflook/terraform-new-workspace@v1
+        with:
+          path: terraform/distribution/
+          workspace: ${{ inputs.stage }}
+
+      - name: Terraform Apply Distribution
+        uses: dflook/terraform-apply@v1
+        with:
+          path: terraform/distribution/
+          workspace: ${{ inputs.stage }}
+          auto_approve: true
+          var: lightsail_instance_ip_address=${{steps.get-lightsail-ip-address.outputs.IP_ADDRESS}}
