@@ -109,6 +109,7 @@ jobs:
 
       - name: Check if Terraform backend S3 bucket exists
         id: backend-exists
+        shell: bash {0}
         run: |
           if aws s3api head-bucket --bucket "wz-tf-state-infra-lab-${{ steps.repo-name.outputs.REPO_NAME }}" 2>&1 | grep -q '404'; then
             echo ::set-output name=EXISTS::false
