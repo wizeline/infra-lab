@@ -36,7 +36,7 @@ resource "aws_s3_bucket" "tf-state-bucket" {
 }
 
 resource "aws_dynamodb_table" "tf-lock-dynamodb" {
-  name           = "tf-state-lock"
+  name           = "tf-state-lock-${var.repository_name}"
   hash_key       = "LockID"
   read_capacity  = 5
   write_capacity = 5
