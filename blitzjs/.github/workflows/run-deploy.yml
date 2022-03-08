@@ -164,7 +164,6 @@ jobs:
           script: |
             rm -rf ~/project/tmp
             mkdir -p ~/project/app
-            mkdir -p ~/project/db
             mkdir -p ~/project/tmp
 
       - name: Delete node modules
