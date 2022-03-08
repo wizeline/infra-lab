@@ -71,9 +71,10 @@ jobs:
 
       - name: Create .env file for ${{ inputs.stage }} stage
         run: |
-          cat << EOF > .env
+          cat << EOF > env-tmp
           ${{ secrets.ENV_FILE }}
           EOF
+          cp env-tmp .env
 
       - name: Install Blitz globally
         run: yarn global add blitz
