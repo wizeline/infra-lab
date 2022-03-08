@@ -192,6 +192,9 @@ jobs:
             . ~/project/tmp/scripts/setup.sh ${{ inputs.stage }} ${{ inputs.node-version }} ${{ secrets.LITESTREAM_AWS_ACCESS_KEY_ID }} ${{ secrets.LITESTREAM_AWS_SECRET_ACCESS_KEY }}
             rm -rf ~/project/tmp
 
+      - name: Application deployed to ${{ steps.get-lightsail-ip-address.outputs.IP_ADDRESS }}
+        run: echo 'Application deployed to ${{ steps.get-lightsail-ip-address.outputs.IP_ADDRESS }}'
+
       # - name: Terraform Change Workspace Distribution
       #   uses: dflook/terraform-new-workspace@v1
       #   with:
