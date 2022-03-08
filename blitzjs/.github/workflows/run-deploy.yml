@@ -128,7 +128,7 @@ jobs:
             repository_name = "${{ steps.repo-name.outputs.REPO_NAME }}"
 
       - name: Set repo name in backend.tfvars bucket name
-        run: sed -ie 's/\[repo_name\]/${{ steps.repo-name.outputs.REPO_NAME }}/' terraform/backend/backend.tfvars
+        run: sed -ie 's/\[repo_name\]/${{ steps.repo-name.outputs.REPO_NAME }}/g' terraform/backend/backend.tfvars
 
       - name: Terraform Change Workspace Lightsail
         uses: dflook/terraform-new-workspace@v1
