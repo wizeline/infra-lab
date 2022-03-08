@@ -177,7 +177,7 @@ jobs:
           server: ${{ steps.get-lightsail-ip-address.outputs.IP_ADDRESS }}
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
           local_path: './*'
-          remote_path: '/home/admin/project/tmp/'
+          remote_path: 'project/tmp/'
           args: '-o ConnectTimeout=60'
 
       - name: Configure deployment server
@@ -190,7 +190,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             chmod +x ~/project/tmp/scripts/setup.sh
-            ~/project/tmp/scripts/setup.sh ${{ inputs.stage }} ${{ inputs.node-version }} ${{ secrets.LITESTREAM_AWS_ACCESS_KEY_ID }} ${{ secrets.LITESTREAM_AWS_SECRET_ACCESS_KEY }}
+            . ~/project/tmp/scripts/setup.sh ${{ inputs.stage }} ${{ inputs.node-version }} ${{ secrets.LITESTREAM_AWS_ACCESS_KEY_ID }} ${{ secrets.LITESTREAM_AWS_SECRET_ACCESS_KEY }}
             rm -rf ~/project/tmp
 
       # - name: Terraform Change Workspace Distribution
