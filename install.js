@@ -53,7 +53,7 @@ function getRequest(url, user, token) {
 }
 
 /**
- * Recursivelly traverses and locally recreates the directory structure of an specified template from the `infra-lab` repo.
+ * Recursively traverses and locally recreates the directory structure of a specified template from the `infra-lab` repo.
  *
  * This method makes use of the `Get Repository Content` endpoint from the GitHub API, which you can read more about here:
  * https://docs.github.com/en/rest/reference/repos#get-repository-content
@@ -86,6 +86,8 @@ Some steps that may help you solve this problem are:
     const sanitizedPath = item.path.replace(/^\w+\//, '');
 
     if (item.type === 'dir') {
+      // If item is a directory, create the directory in the current project if it doesn't exist.
+      // Then, recursively traverse the contents of the directory
       const directoryExists = fs.existsSync(sanitizedPath);
       if (!directoryExists) {
         fs.mkdirSync(sanitizedPath, { recursive: true });
@@ -93,6 +95,7 @@ Some steps that may help you solve this problem are:
 
       await traverseTemplateStructure(item.url, user, token);
     } else if (item.type === 'file') {
+      // If item is a file, get the contents of the file and write it to the directory it belongs
       const fileResponse = await getRequest(item.download_url, user, token);
       fs.writeFileSync(sanitizedPath, fileResponse.output);
     }
