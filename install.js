@@ -20,7 +20,10 @@ function getRequest(url) {
       {
         host,
         path,
-        headers: { 'User-Agent': 'wizeline-infra-lab' },
+        headers: {
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'wizeline-infra-lab',
+        },
       },
       (response) => {
         let output = '';
