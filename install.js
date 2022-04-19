@@ -6,11 +6,9 @@ const fs = require('fs');
 /**
  * A generic wrapper around the `https.get` method
  * @param {string} url The URL to fetch
- * @param {string} user A GitHub user name
- * @param {string} token A GitHub Personal Access Token to get access to the `wizeline/infra-lab` repo
  * @returns A string representing the response body.
  */
-function getRequest(url, user, token) {
+function getRequest(url) {
   // Remove the `http://` or `https://` part from the url
   const sanitizedURL = url.replace(/https?:\/\//, '');
   const firstSlashIdx = sanitizedURL.indexOf('/');
@@ -22,8 +20,7 @@ function getRequest(url, user, token) {
       {
         host,
         path,
-        auth: `${user}:${token}`,
-        headers: { 'User-Agent': 'infra-lab' },
+        headers: { 'User-Agent': 'wizeline-infra-lab' },
       },
       (response) => {
         let output = '';
@@ -58,11 +55,9 @@ function getRequest(url, user, token) {
  * This method makes use of the `Get Repository Content` endpoint from the GitHub API, which you can read more about here:
  * https://docs.github.com/en/rest/reference/repos#get-repository-content
  * @param {string} url The URL to fetch
- * @param {string} user A GitHub user name
- * @param {string} token A GitHub Personal Access Token to get access to the `wizeline/infra-lab` repo
  */
-async function traverseTemplateStructure(url, user, token) {
-  const response = await getRequest(url, user, token);
+async function traverseTemplateStructure(url) {
+  const response = await getRequest(url);
   const jsonResponse = JSON.parse(response.output);
 
   if (response.statusCode != 200) {
@@ -75,9 +70,7 @@ ${jsonResponse.message}
 
 Some steps that may help you solve this problem are:
 1. Verify that you're using the correct template (e.g. blitzjs instead of blitz)
-2. Verify that your username is spelt correctly and that it has access to the https://github.com/wizeline/infra-lab repo
-3. Verify that you are entering your Personal Access Token correctly
-4. If you're using a specific ref, verify that it exists in the remote`
+2. If you're using a specific ref, verify that it exists in the remote`
     );
   }
 
@@ -93,30 +86,26 @@ Some steps that may help you solve this problem are:
         fs.mkdirSync(sanitizedPath, { recursive: true });
       }
 
-      await traverseTemplateStructure(item.url, user, token);
+      await traverseTemplateStructure(item.url);
     } else if (item.type === 'file') {
       // If item is a file, get the contents of the file and write it to the directory it belongs
-      const fileResponse = await getRequest(item.download_url, user, token);
+      const fileResponse = await getRequest(item.download_url);
       fs.writeFileSync(sanitizedPath, fileResponse.output);
     }
   }
 }
 
 async function main() {
-  const [, , template, username, PAT, ref] = process.argv;
+  const [, , template, ref] = process.argv;
 
   try {
     if (ref) {
       await traverseTemplateStructure(
-        `https://api.github.com/repos/wizeline/infra-lab/contents/${template}?ref=${ref}`,
-        username,
-        PAT
+        `https://api.github.com/repos/wizeline/infra-lab/contents/${template}?ref=${ref}`
       );
     } else {
       await traverseTemplateStructure(
-        `https://api.github.com/repos/wizeline/infra-lab/contents/${template}`,
-        username,
-        PAT
+        `https://api.github.com/repos/wizeline/infra-lab/contents/${template}`
       );
     }
   } catch (error) {
