@@ -16,7 +16,7 @@ To include the template in your Blitz repo, follow these steps:
 3. Run the following command:
 
    ```sh
-   curl -u https://raw.githubusercontent.com/wizeline/infra-lab/main/install.js | node - blitzjs
+   curl https://raw.githubusercontent.com/wizeline/infra-lab/main/install.js | node - blitzjs
    ```
 
 You'll also need to set the following secrets in your GitHub repository:
