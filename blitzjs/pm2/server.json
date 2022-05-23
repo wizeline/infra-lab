@@ -1,0 +1,8 @@
+{
+  "name": "server",
+  "script": "blitz start",
+  "instances": "1",
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

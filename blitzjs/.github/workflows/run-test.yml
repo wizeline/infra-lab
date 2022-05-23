@@ -1,0 +1,51 @@
+name: Run Tests
+
+on:
+  pull_request:
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Remove existing .env file
+        run: rm -rf .env
+
+      - name: Create .env file
+        run: |
+          cat << EOF > .env
+          ${{ secrets.DEV_ENV }}
+          EOF
+
+      - name: Install Blitz globally
+        run: yarn global add blitz
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Init SQLite database
+        run: blitz prisma migrate reset --force
+
+      - name: Run tests
+        run: yarn test
+        env:
+          NODE_ENV: test
+
+      - name: Add test data
+        run: blitz db seed
+
+      - name: Attempt build
+        run: yarn build

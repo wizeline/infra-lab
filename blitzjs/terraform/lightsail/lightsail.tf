@@ -8,14 +8,7 @@ terraform {
     }
   }
 
-  backend "s3" {
-    bucket         = "wz-tf-state-infra-lab"
-    key            = "infra-lab/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "tf-state-lock"
-    encrypt        = true
-  }
-
+  backend "s3" {}
 }
 
 provider "aws" {
@@ -32,10 +25,10 @@ locals {
 }
 
 resource "aws_lightsail_instance" "instance" {
-  name              = "infra-lab"
+  name              = "${var.repository_name}-${terraform.workspace}"
   availability_zone = "us-east-1a"
-  blueprint_id      = "amazon_linux_2"
-  bundle_id         = "nano_2_0"
+  blueprint_id      = "debian_10"
+  bundle_id         = "small_2_0"
   tags              = local.resource_tags
 }
 
