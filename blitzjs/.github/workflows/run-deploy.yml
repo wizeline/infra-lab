@@ -25,8 +25,6 @@ on:
         required: true
       LITESTREAM_S3_PATH:
         required: true
-      SSH_PRIVATE_KEY:
-        required: true
       LITESTREAM_AWS_ACCESS_KEY_ID:
         required: true
       LITESTREAM_AWS_SECRET_ACCESS_KEY:
@@ -154,13 +152,17 @@ jobs:
       - name: Get Lightsail instance IP Address
         id: get-lightsail-ip-address
         run: echo ::set-output name=IP_ADDRESS::$(aws lightsail get-instance-access-details --instance-name ${{ steps.repo-name.outputs.REPO_NAME }}-${{ inputs.stage }} | jq -r '.accessDetails.ipAddress')
+      
+      - name: Get Lightsail private SSH key
+        id: get-lightsail-ssh-key
+        run: aws lightsail download-default-key-pair | jq '.privateKeyBase64' | tr -d '"' | sed 's/\\n/\n/g' > ~/lightsail.pem
 
       - name: Prepare deployment server for build
         uses: appleboy/ssh-action@master
         with:
           host: ${{ steps.get-lightsail-ip-address.outputs.IP_ADDRESS }}
           username: ${{ steps.get-lightsail-username.outputs.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ~/lightsail.pem
           script: |
             rm -rf ~/project/tmp
             mkdir -p ~/project/app
@@ -174,7 +176,7 @@ jobs:
         with:
           username: ${{ steps.get-lightsail-username.outputs.USERNAME }}
           server: ${{ steps.get-lightsail-ip-address.outputs.IP_ADDRESS }}
-          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh_private_key: ~/lightsail.pem
           local_path: './*'
           remote_path: 'project/tmp/'
           args: '-o ConnectTimeout=60'
@@ -186,7 +188,7 @@ jobs:
           command_timeout: 30m
           host: ${{ steps.get-lightsail-ip-address.outputs.IP_ADDRESS }}
           username: ${{ steps.get-lightsail-username.outputs.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ~/lightsail.pem
           script: |
             chmod +x ~/project/tmp/scripts/setup.sh
             . ~/project/tmp/scripts/setup.sh ${{ inputs.stage }} ${{ inputs.node-version }} ${{ secrets.LITESTREAM_AWS_ACCESS_KEY_ID }} ${{ secrets.LITESTREAM_AWS_SECRET_ACCESS_KEY }}
