@@ -155,14 +155,14 @@ jobs:
       
       - name: Get Lightsail private SSH key
         id: get-lightsail-ssh-key
-        run: aws lightsail download-default-key-pair | jq '.privateKeyBase64' | tr -d '"' | sed 's/\\n/\n/g' > ~/lightsail.pem
+        run: echo ::set-output name=SSH_PRIVATE_KEY::$(aws lightsail download-default-key-pair | jq -r '.privateKeyBase64' | head -n -1)
 
       - name: Prepare deployment server for build
         uses: appleboy/ssh-action@master
         with:
           host: ${{ steps.get-lightsail-ip-address.outputs.IP_ADDRESS }}
           username: ${{ steps.get-lightsail-username.outputs.USERNAME }}
-          key: ~/lightsail.pem
+          key: ${{ steps.get-lightsail-ssh-key.outputs.SSH_PRIVATE_KEY }}
           script: |
             rm -rf ~/project/tmp
             mkdir -p ~/project/app
@@ -176,7 +176,7 @@ jobs:
         with:
           username: ${{ steps.get-lightsail-username.outputs.USERNAME }}
           server: ${{ steps.get-lightsail-ip-address.outputs.IP_ADDRESS }}
-          ssh_private_key: ~/lightsail.pem
+          ssh_private_key: ${{ steps.get-lightsail-ssh-key.outputs.SSH_PRIVATE_KEY }}
           local_path: './*'
           remote_path: 'project/tmp/'
           args: '-o ConnectTimeout=60'
@@ -188,7 +188,7 @@ jobs:
           command_timeout: 30m
           host: ${{ steps.get-lightsail-ip-address.outputs.IP_ADDRESS }}
           username: ${{ steps.get-lightsail-username.outputs.USERNAME }}
-          key: ~/lightsail.pem
+          key: ${{ steps.get-lightsail-ssh-key.outputs.SSH_PRIVATE_KEY }}
           script: |
             chmod +x ~/project/tmp/scripts/setup.sh
             . ~/project/tmp/scripts/setup.sh ${{ inputs.stage }} ${{ inputs.node-version }} ${{ secrets.LITESTREAM_AWS_ACCESS_KEY_ID }} ${{ secrets.LITESTREAM_AWS_SECRET_ACCESS_KEY }}
