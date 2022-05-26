@@ -1,0 +1,42 @@
+name: Run Tests
+
+on:
+  pull_request:
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Remove existing .env file
+        run: rm -rf .env
+
+      - name: Create .env file
+        run: |
+          cat << EOF > .env
+          ${{ secrets.DEV_ENV }}
+          EOF
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm run test
+        env:
+          NODE_ENV: test
+
+      - name: Attempt build
+        run: npm run build

@@ -3,6 +3,7 @@
 InfraLab is a collection of templates that help you integrate GitHub Actions CI/CD capabilities to your projects. We provide templates for different tech stacks. For now we have:
 
 * [BlitzJS](https://blitzjs.com)
+* [NodeJS](https://nodejs.org)
 
 ## Workflows provided
 
@@ -16,10 +17,10 @@ To include the template in your Blitz repo, follow these steps:
 
 1. Open a terminal
 2. Navigate to your Blitz project directory
-4. Run the following command:
+4. Run the following command, modifying the stack name:
 
    ```sh
-   curl https://raw.githubusercontent.com/wizeline/infra-lab/main/install.js | node - blitzjs
+   curl https://raw.githubusercontent.com/wizeline/infra-lab/main/install.js | node - [stack-name]
    ```
 
 You'll also need to set the following secrets in your GitHub repository:
