@@ -31,21 +31,12 @@ You'll also need to set the following secrets in your GitHub repository:
 | `PIPELINE_AWS_ACCESS_KEY_ID`     | The AWS Access Key ID of a user with full access to Lightsail, DynamoDB and S3     |
 | `PIPELINE_AWS_SECRET_ACCESS_KEY` | The AWS Secret Access Key of a user with full access to Lightsail, DynamoDB and S3 |
 | `PIPELINE_AWS_REGION`            | The AWS Region where the resources will be created                                 |
-| `SSH_PRIVATE_KEY`                | The Amazon Lightsail SSH key private key to connect to the newly created instance  |
 
 4. The `DEV_ENV` contents can start with:
 
 ```
 DATABASE_URL="file:./db.sqlite"
 SESSION_SECRET_KEY=random_key_of_at_least_32_characters
-```
-
-5. To get the `SSH_PRIVATE_KEY` contents you can either log into the lightsail web console and make sure you have at least 1 instance (maybe manually created) on the same region you are going to use to be able to download it from the `Account -> SSH -> Default keys` section.
-
-   Or, you can use this aws cli command:
-
-```
-aws lightsail download-default-key-pair --profile infra-lab | jq '.privateKeyBase64' | tr -d '"' | sed 's/\\n/\n/g'
 ```
 
 ## How to check the logs
